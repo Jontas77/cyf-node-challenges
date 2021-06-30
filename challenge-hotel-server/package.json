@@ -1,0 +1,16 @@
+{
+  "name": "challenge-hotel-server",
+  "version": "1.0.0",
+  "description": "In this challenge you must make an Express app which provides an API to manage a list of hotel bookings, in JSON format.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cores": "^0.8.5",
+    "express": "^4.17.1"
+  }
+}

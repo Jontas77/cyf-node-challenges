@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const moment = require('moment');
 const bookings = require("./bookings.json");
 
 const app = express();
@@ -92,6 +93,23 @@ app.delete("/bookings/:id", (req, res) => {
       .status(404)
       .json({ msg: `Booking not found with id: ${req.params.id}` });
   }
+});
+
+// Search by date
+app.get('/bookings/search', (req, res) => {
+    const date = req.query.date;
+
+    if(date) {
+        const searchDate = bookings.filter(item => {
+            return (
+                item.checkInDate.includes(date(moment().format('YYYY-MM-DD'))) ||
+                item.checkOutDate.includes(date(moment().format('YYYY-MM-DD')))
+            );
+        })
+        res.send(searchDate);
+    } else {
+        res.status(404).json({ msg: 'Date not found' });
+    }
 });
 
 const PORT = process.env.PORT || 3000;

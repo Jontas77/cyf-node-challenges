@@ -1,6 +1,6 @@
-const express = require('express');
-const cors = require('cors');
-const bookings = require('./bookings.json');
+const express = require("express");
+const cors = require("cors");
+const bookings = require("./bookings.json");
 
 const app = express();
 app.use(cors());
@@ -8,25 +8,90 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 // Welcome
-app.get('/', (req, res) => {
-    res.json("Hotel booking server.  Ask for /bookings, etc.");
+app.get("/", (req, res) => {
+  res.json("Hotel booking server.  Ask for /bookings, etc.");
 });
 
 // Get all bookings
-app.get('/bookings', (req, res) => {
-    res.json(bookings);
+app.get("/bookings", (req, res) => {
+  res.json(bookings);
 });
 
 // Create new booking
-app.post('/bookings', (req, res) => {
-    const newBooking = {
-        id: "",
-        roomId: "",
-        ...req.body
-    }
+app.post("/bookings", (req, res) => {
+  const newBooking = {
+    id: "",
+    ...req.body,
+  };
 
-    bookings.push(newBooking)
-    res.json(bookings);
+  const {
+    title,
+    firstName,
+    surname,
+    email,
+    roomId,
+    checkInDate,
+    checkOutDate,
+  } = newBooking;
+
+  if (
+    !title ||
+    title === "" ||
+    !firstName ||
+    firstName === "" ||
+    !surname ||
+    surname === "" ||
+    !email ||
+    email === "" ||
+    !roomId ||
+    roomId === "" ||
+    !checkInDate ||
+    checkInDate === "" ||
+    !checkOutDate ||
+    checkOutDate === ""
+  ) {
+    return res.status(400).json({ msg: "Please enter a value in all fields" });
+  }
+
+  bookings.push(newBooking);
+  bookings.forEach((booking, index) => {
+    booking.id = index + 1;
+  });
+  res.json({
+    msg: "Booking Added!",
+    bookings,
+  });
+});
+
+// Get one booking by id
+const bookingId = (req) => (booking) => booking.id === parseInt(req.params.id);
+
+app.get("/bookings/:id", (req, res) => {
+  const foundBooking = bookings.some(bookingId(req));
+
+  if (foundBooking) {
+    res.json(bookings.filter(bookingId(req)));
+  } else {
+    res
+      .status(404)
+      .json({ msg: `Booking not found with id: ${req.params.id}` });
+  }
+});
+
+// Delete a booking by id
+app.delete("/bookings/:id", (req, res) => {
+  const foundBooking = bookings.some(bookingId(req));
+
+  if (foundBooking) {
+    res.json({
+      msg: "Booking deleted!",
+      bookings: bookings.filter((booking) => !bookingId(req)(booking)),
+    });
+  } else {
+    res
+      .status(404)
+      .json({ msg: `Booking not found with id: ${req.params.id}` });
+  }
 });
 
 const PORT = process.env.PORT || 3000;
@@ -44,3 +109,5 @@ app.listen(PORT, () => console.log(`Server is started at port: ${PORT}`));
 | GET    | /bookings/search?date=2019-05-20 | return all bookings spanning the given date |
 
 */
+
+

@@ -1,7 +1,8 @@
 const express = require("express");
 const cors = require("cors");
-const moment = require('moment');
-const bookings = require("./bookings.json");
+const moment = require("moment");
+const validator = require("email-validator");
+let bookings = require("./bookings.json");
 
 const app = express();
 app.use(cors());
@@ -10,12 +11,46 @@ app.use(express.urlencoded({ extended: false }));
 
 // Welcome
 app.get("/", (req, res) => {
-  res.json("Hotel booking server.  Ask for /bookings, etc.");
+  res.send("Hotel booking server.  Ask for /bookings, etc.");
 });
 
 // Get all bookings
 app.get("/bookings", (req, res) => {
   res.json(bookings);
+});
+
+// Search term for email, firstName and surName
+app.get("/bookings/search", (req, res) => {
+  const term = req.query.term;
+
+  if(term) {
+    const searchTerm = bookings.filter(entry => {
+      return (
+        entry.firstName.toLowerCase().includes(term.toLowerCase()) ||
+        entry.surname.toLowerCase().includes(term.toLowerCase()) ||
+        entry.email.toLowerCase().includes(term.toLowerCase())
+      );
+    })
+    res.send(searchTerm)
+  }
+});
+
+// Search by date
+app.get("/bookings/search", (req, res) => {
+  const date = req.query.date;
+  const dates = moment(date);
+
+  if (date) {
+    const searchDate = bookings.filter((item) => {
+      return (
+        item.checkInDate.includes(dates.format("YYYY-MM-DD")) ||
+        item.checkOutDate.includes(dates.format("YYYY-MM-DD"))
+      );
+    });
+    res.send(searchDate);
+  } else {
+    res.status(404).send("Date not found, Try another date");
+  }
 });
 
 // Create new booking
@@ -34,6 +69,28 @@ app.post("/bookings", (req, res) => {
     checkInDate,
     checkOutDate,
   } = newBooking;
+
+  const emailVal = validator.validate(email);
+
+  // Check if email is valid
+  if (!emailVal) {
+    return res.send("Please enter a valid email address");
+  }
+
+  // Check dates
+  const start = checkInDate;
+  const end = checkOutDate;
+
+  const checkDate = (start, end) => {
+    var mStart = moment(start);
+    var mEnd = moment(end);
+    return mStart.isBefore(mEnd);
+  }
+const checkDates = checkDate(start, end)
+  
+if(!checkDates) {
+  return res.send("Please enter correct dates")
+}
 
   if (
     !title ||
@@ -55,9 +112,7 @@ app.post("/bookings", (req, res) => {
   }
 
   bookings.push(newBooking);
-  bookings.forEach((booking, index) => {
-    booking.id = index + 1;
-  });
+  bookings.forEach((entry, index) => (entry.id = index + 1));
   res.json({
     msg: "Booking Added!",
     bookings,
@@ -65,51 +120,30 @@ app.post("/bookings", (req, res) => {
 });
 
 // Get one booking by id
-const bookingId = (req) => (booking) => booking.id === parseInt(req.params.id);
-
 app.get("/bookings/:id", (req, res) => {
-  const foundBooking = bookings.some(bookingId(req));
+  const { id } = req.params;
 
+  const foundBooking = bookings.find((entry) => entry.id === parseInt(id));
+  console.log(foundBooking);
   if (foundBooking) {
-    res.json(bookings.filter(bookingId(req)));
+    res.json(foundBooking);
   } else {
-    res
-      .status(404)
-      .json({ msg: `Booking not found with id: ${req.params.id}` });
+    res.status(404).send(`Booking not found with id: ${id}`);
   }
 });
 
 // Delete a booking by id
 app.delete("/bookings/:id", (req, res) => {
-  const foundBooking = bookings.some(bookingId(req));
+  const { id } = req.params;
+
+  const foundBooking = bookings.find((entry) => entry.id === parseInt(id));
 
   if (foundBooking) {
-    res.json({
-      msg: "Booking deleted!",
-      bookings: bookings.filter((booking) => !bookingId(req)(booking)),
-    });
+    bookings = bookings.filter((entry) => entry.id !== parseInt(id));
+    res.send(`Booking Deleted With Id: ${id}`);
   } else {
-    res
-      .status(404)
-      .json({ msg: `Booking not found with id: ${req.params.id}` });
+    res.status(404).send(`Booking not found with id: ${id}`);
   }
-});
-
-// Search by date
-app.get('/bookings/search', (req, res) => {
-    const date = req.query.date;
-
-    if(date) {
-        const searchDate = bookings.filter(item => {
-            return (
-                item.checkInDate.includes(date(moment().format('YYYY-MM-DD'))) ||
-                item.checkOutDate.includes(date(moment().format('YYYY-MM-DD')))
-            );
-        })
-        res.send(searchDate);
-    } else {
-        res.status(404).json({ msg: 'Date not found' });
-    }
 });
 
 const PORT = process.env.PORT || 3000;
@@ -128,4 +162,21 @@ app.listen(PORT, () => console.log(`Server is started at port: ${PORT}`));
 
 */
 
+/*
+const bookingId = (req) => (booking) => booking.id === parseInt(req.params.id);
 
+app.get("/bookings/:id", (req, res) => {
+  const foundBooking = bookings.some(bookingId(req));
+
+  if (foundBooking) {
+    res.json(bookings.filter(bookingId(req)));
+  } else {
+    res
+      .status(404)
+      .json({ msg: `Booking not found with id: ${req.params.id}` });
+  }
+});
+*/
+// npm install email-validator - email validator
+// const validator = require("email-validator");
+// validator.validate("test@email.com"); // true

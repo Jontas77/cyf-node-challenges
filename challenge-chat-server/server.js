@@ -1,5 +1,5 @@
-const express = require("express");
-const cors = require("cors");
+import express from "express";
+import cors from "cors";
 
 const app = express();
 app.use(cors());
@@ -14,7 +14,7 @@ const welcomeMessage = {
   text: "Welcome to CYF chat system!",
 };
 
-const messages = [welcomeMessage];
+let messages = [welcomeMessage];
 
 // Render file on front-End
 app.get("/", (req, res) => {
@@ -24,49 +24,74 @@ app.get("/", (req, res) => {
 // Get all messages
 app.get("/messages", (req, res) => res.send(messages));
 
+// Search messages - Read only messages with certain substrings
+app.get("/messages/search", (req, res) => {
+  const searchText = req.query.text;
+
+  if (searchText) {
+    const searchMsg = messages.filter((msg) => {
+      return msg.text.toLowerCase().includes(searchText.toLowerCase());
+    });
+    res.send(searchMsg);
+  } else {
+    res.status(404).json({ msg: "No Results Found" });
+  }
+});
+
+// Get only latest 10 messages
+app.get("/messages/latest", (req, res) => res.send(messages.slice(-10)));
+
 // Add messages
 app.post("/messages", (req, res) => {
-  const newMessage = {
+  const newMsg = {
     id: "",
     ...req.body,
   };
 
-  if (!newMessage.from || !newMessage.text) {
+  if (
+    !newMsg.from ||
+    newMsg.from === "" ||
+    !newMsg.text ||
+    newMsg.text === ""
+  ) {
     return res.status(400).json({ msg: "Please include a name and message" });
   }
 
-  messages.push(newMessage);
-  messages.forEach((msg, index) => {
-    msg.id = index + 1;
-  });
+  messages.push(newMsg);
+  messages.forEach((msg, index) => (msg.id = index + 1));
+
   res.json(messages);
 });
 
 // Get single message by id
-const idMessage = req => message => message.id === parseInt(req.params.id);
+// const idMessage = (req) => (message) => message.id === parseInt(req.params.id);
 
-app.get('/:id', (req, res) => {
-    const foundMsg = messages.some(idMessage(req));
+app.get("/messages/:id", (req, res) => {
+  // const foundMsg = messages.some(idMessage(req));
+  const { id } = req.params;
 
-    if(foundMsg) {
-        res.json(messages.filter(idMessage(req)))
-    } else {
-        res.status(400).json({ msg: `No message with the id: ${req.params.id}` })
-    }
+  const foundMsg = messages.find(msg => msg.id === parseInt(id))
+
+  if (foundMsg) {
+    res.send(foundMsg)
+    // res.json(messages.filter(idMessage(req)));
+  } else {
+    res.status(400).json({ msg: `No message with the id: ${id}` });
+  }
 });
 
 // Delete a message by id
-app.delete('/:id', (req, res) => {
-    const foundMsg = messages.some(idMessage(req));
+app.delete("/messages/:id", (req, res) => {
+  const { id } = req.params;
 
-    if(foundMsg) {
-        res.json({
-            msg: "Message deleted",
-            messages: messages.filter(message => !idMessage(req)(message))
-        })
-    } else {
-        res.status(400).json({ msg: `No message with the id: ${req.params.id}` })
-    } 
+  const found = messages.find((msg) => msg.id === parseInt(id));
+
+  if (found) {
+    messages = messages.filter((msg) => msg.id !== parseInt(`${id}`));
+    res.send(`Message deleted with id: ${id}`);
+  } else {
+    res.status(400).json({ msg: `No message with the id: ${id}` });
+  }
 });
 
 app.listen(PORT, () => console.log(`Server started at port: ${PORT}`));

@@ -1,4 +1,4 @@
-GET http://localhost:5000/messages
+GET http://localhost:5000
 
 ###
 
@@ -16,4 +16,13 @@ DELETE http://localhost:5000/messages/3
 
 ###
 
-GET http://localhost:5000/messages/3
+GET http://localhost:5000/messages
+
+###
+
+PUT http://localhost:5000/messages/1
+Content-Type: application/json
+
+{
+    "text": "Welcome my fellow trainees"
+}
